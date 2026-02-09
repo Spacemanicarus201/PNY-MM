@@ -285,21 +285,32 @@ class CashierWindow(QMainWindow):
 
         tax_note = "Termasuk PPN 12%" if TAX_INCLUSIVE else "PPN 12%"
 
-        receipt_html = f"""
-        {store_block}
-        {invoice_block}
-        <b>Items:</b><br>
-        {items_html}
-        <hr>
-        Subtotal: ${subtotal:.2f}<br>
-        Discounts: $0.00<br>
-        {tax_note}: ${tax:.2f}<br>
-        <b>Grand Total: ${total:.2f}</b><br>
-        Payment Method: {metadata.get('payment_method')}<br>
-        Bayar: ${amount_paid:.2f}<br>
-        Kembali: ${change_display:.2f}<br>
-        {log_msg}
-        """
+                # Build centered receipt HTML (do not include internal report path)
+                receipt_html = f"""
+                <div style="text-align:center; font-family: Arial, Helvetica, sans-serif;">
+                    <div style="font-weight:700; font-size:16px;">{STORE_NAME}</div>
+                    <div>{STORE_ADDRESS}</div>
+                    <div>Tel: {CONTACT_NUMBER}</div>
+                    <hr>
+                    <div><b>Invoice:</b> {invoice or '-'}</div>
+                    <div><b>Date:</b> {dt_str}</div>
+                    <div><b>Cashier:</b> {metadata.get('cashier_name') or '-'}</div>
+                    <div><b>Payment:</b> {metadata.get('payment_method')}</div>
+                    <hr>
+                    <div style="text-align:left; display:inline-block; width:90%;">
+                        <b>Items:</b><br>
+                        {items_html}
+                        <hr>
+                        Subtotal: ${subtotal:.2f}<br>
+                        Discounts: $0.00<br>
+                        {tax_note}: ${tax:.2f}<br>
+                        <b>Grand Total: ${total:.2f}</b><br>
+                        Payment Method: {metadata.get('payment_method')}<br>
+                        Bayar: ${amount_paid:.2f}<br>
+                        Kembali: ${change_display:.2f}<br>
+                    </div>
+                </div>
+                """
 
         # Show receipt dialog with Print button placeholder
         dlg = ReceiptDialog(receipt_html, parent=self)

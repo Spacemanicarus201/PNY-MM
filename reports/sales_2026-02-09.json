@@ -1,0 +1,77 @@
+{
+  "date": "2026-02-09",
+  "store": {
+    "name": "Jessy Idolo Garment",
+    "address": "123 Market Street, Your City",
+    "contact": "+62-812-3456-7890",
+    "tax_rate": 0.12,
+    "tax_inclusive": false
+  },
+  "sales": [
+    {
+      "timestamp": "18:27:54",
+      "transaction_id": 1,
+      "invoice_number": "INV/20260209/001",
+      "cashier": "x",
+      "payment_method": "Cash",
+      "amount_paid": 100.0,
+      "change": 21.6,
+      "items": [
+        {
+          "product_id": 1,
+          "product_name": "hijab",
+          "code": "'",
+          "color": "biru",
+          "size": "m",
+          "quantity": 1,
+          "unit_price": 20.0,
+          "line_total": 20.0
+        },
+        {
+          "product_id": 2,
+          "product_name": "baju",
+          "code": "",
+          "color": "merah",
+          "size": "l",
+          "quantity": 1,
+          "unit_price": 50.0,
+          "line_total": 50.0
+        }
+      ],
+      "subtotal": 70.0,
+      "tax": 8.4,
+      "total": 78.4
+    },
+    {
+      "timestamp": "20:35:47",
+      "transaction_id": 2,
+      "invoice_number": "INV/20260209/002",
+      "cashier": "x",
+      "payment_method": "Cash",
+      "amount_paid": 56.0,
+      "change": 0.0,
+      "items": [
+        {
+          "product_id": 1,
+          "product_name": "hijab",
+          "code": "'",
+          "color": "biru",
+          "size": "m",
+          "quantity": 1,
+          "unit_price": 50.0,
+          "line_total": 50.0
+        }
+      ],
+      "subtotal": 50.0,
+      "tax": 6.0,
+      "total": 56.0
+    }
+  ],
+  "summary": {
+    "total_sales": 120.0,
+    "total_tax": 14.4,
+    "total_revenue": 134.4,
+    "total_units_sold": 3,
+    "transaction_count": 2
+  }
+}
