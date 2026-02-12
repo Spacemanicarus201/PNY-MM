@@ -1,4 +1,0 @@
-invoice_number,timestamp,transaction_id,cashier,payment_method,product_id,product_name,code,color,size,quantity,unit_price,line_total,subtotal,tax,total,amount_paid,change
-INV/20260209/001,18:27:54,1,x,Cash,1,hijab,',biru,m,1,20.0,20.0,70.0,8.4,78.4,100.0,21.6
-INV/20260209/001,18:27:54,1,x,Cash,2,baju,,merah,l,1,50.0,50.0,70.0,8.4,78.4,100.0,21.6
-INV/20260209/002,20:35:47,2,x,Cash,1,hijab,',biru,m,1,50.0,50.0,50.0,6.0,56.0,56.0,0.0
