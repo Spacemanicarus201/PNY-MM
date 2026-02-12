@@ -14,13 +14,16 @@ class CartManager:
         products = get_stock()
         by_id = {}
         for product in products:
-            product_id, code, name, color, size, stock = product
+            # products: id, code, name, color, size, price, discount, stock
+            product_id, code, name, color, size, price, discount, stock = product
             by_id[str(product_id)] = {
                 "id": product_id,
                 "code": code,
                 "name": name,
                 "color": color,
                 "size": size,
+                "price": price,
+                "discount": discount,
                 "stock": stock
             }
         self.products_by_id = by_id
@@ -47,7 +50,7 @@ class CartManager:
             self.cart[product_id] = {
                 "product": product,
                 "quantity": 1,
-                "price": unit_price
+                "price": unit_price if unit_price and unit_price > 0 else product.get("price", 0)
             }
         
         return {"success": True, "product": product, "quantity": self.cart[product_id]["quantity"]}

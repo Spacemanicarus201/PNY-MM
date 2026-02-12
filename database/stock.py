@@ -1,7 +1,7 @@
 # database/stock.py
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                                QTableWidget, QTableWidgetItem, QPushButton, QSpinBox,
-                               QMessageBox, QHeaderView, QApplication)
+                               QMessageBox, QHeaderView, QApplication, QLineEdit)
 from PySide6.QtCore import Qt
 from database.queries import get_stock, restock_product
 
@@ -10,6 +10,7 @@ class StockWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Stock / Inventory Management")
         self.setGeometry(200, 200, 900, 500)
+        self.all_products = []  # Store all products for filtering
         
         self.init_ui()
         self.load_stock_data()
@@ -29,6 +30,15 @@ class StockWindow(QMainWindow):
         instructions = QLabel("Select a product and enter the quantity to restock. Only stock quantities can be modified.")
         instructions.setStyleSheet("font-style: italic; color: #555;")
         main_layout.addWidget(instructions)
+        
+        # Search bar
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(QLabel("Search (ID/Code/Name):"))
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Type ID, Code, or Product Name...")
+        self.search_input.textChanged.connect(self.filter_products)
+        search_layout.addWidget(self.search_input)
+        main_layout.addLayout(search_layout)
         
         # Stock table
         self.stock_table = QTableWidget()
@@ -61,9 +71,12 @@ class StockWindow(QMainWindow):
     
     def load_stock_data(self):
         """Load all products with current stock levels."""
+        self.all_products = get_stock()
+        self.display_products(self.all_products)
+    
+    def display_products(self, products):
+        """Display products in the table."""
         self.stock_table.setRowCount(0)
-        products = get_stock()
-        
         for product in products:
             product_id, code, name, color, size, stock = product
             row = self.stock_table.rowCount()
@@ -109,6 +122,24 @@ class StockWindow(QMainWindow):
             
             # Store product_id in the table for later use
             self.stock_table.item(row, 0).setData(Qt.UserRole, product_id)
+    
+    def filter_products(self):
+        """Filter products based on search query (ID, Code, or Name)."""
+        search_text = self.search_input.text().strip().lower()
+        if not search_text:
+            self.display_products(self.all_products)
+            return
+        
+        filtered = []
+        for product in self.all_products:
+            product_id, code, name, color, size, stock = product
+            # Match ID, Code, or Name (case-insensitive)
+            if (str(product_id).lower().startswith(search_text) or
+                (code and code.lower().find(search_text) != -1) or
+                (name and name.lower().find(search_text) != -1)):
+                filtered.append(product)
+        
+        self.display_products(filtered)
     
     def apply_restock(self):
         """Apply restock quantities to products."""

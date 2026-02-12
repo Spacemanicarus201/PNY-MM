@@ -9,7 +9,7 @@ from reports.ui import ReportsWindow       # from reports folder
 class Launcher(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Warehouse POS Launcher")
+        self.setWindowTitle("Launcher")
         self.setFixedSize(300, 250)
 
         layout = QVBoxLayout()
