@@ -33,8 +33,8 @@ class CashierWindow(QMainWindow):
         
         # Cart table
         self.cart_table = QTableWidget()
-        self.cart_table.setColumnCount(6)
-        self.cart_table.setHorizontalHeaderLabels(["Product", "Code", "Qty", "Unit Price", "Total", "Remove"])
+        self.cart_table.setColumnCount(7)
+        self.cart_table.setHorizontalHeaderLabels(["Product", "Code", "Qty", "Unit Price", "Discount (%)", "Total", "Remove"])
         self.cart_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         left_layout.addWidget(self.cart_table)
         
@@ -84,16 +84,32 @@ class CashierWindow(QMainWindow):
         code_layout.addWidget(self.code_input)
         right_layout.addLayout(code_layout)
         
-        # Price input
+        # Price input (auto-filled from product price, disabled/locked)
         price_layout = QHBoxLayout()
-        price_layout.addWidget(QLabel("Unit Price:"))
+        price_layout.addWidget(QLabel("Unit Price (IDR):"))
         self.price_input = QDoubleSpinBox()
         self.price_input.setMinimum(0.0)
-        self.price_input.setMaximum(9999.99)
+        self.price_input.setMaximum(999999999.0)
         self.price_input.setValue(0.0)
-        self.price_input.setSingleStep(0.01)
+        self.price_input.setSingleStep(1000.0)
+        self.price_input.setReadOnly(True)  # Lock price - cannot change
+        self.price_input.setEnabled(False)  # Disabled
         price_layout.addWidget(self.price_input)
         right_layout.addLayout(price_layout)
+
+        # Discount input (user can apply manual discount)
+        discount_layout = QHBoxLayout()
+        discount_layout.addWidget(QLabel("Discount (%):"))
+        self.discount_input = QDoubleSpinBox()
+        self.discount_input.setMinimum(0.0)
+        self.discount_input.setMaximum(100.0)
+        self.discount_input.setValue(0.0)
+        self.discount_input.setSingleStep(1.0)
+        discount_layout.addWidget(self.discount_input)
+        self.btn_add_discount = QPushButton("Add Discount")
+        self.btn_add_discount.clicked.connect(self.apply_discount)
+        discount_layout.addWidget(self.btn_add_discount)
+        right_layout.addLayout(discount_layout)
         
         # Scan button
         scan_btn = QPushButton("Add to Cart")
@@ -122,34 +138,36 @@ class CashierWindow(QMainWindow):
     def scan_product(self):
         """Handle product scanning."""
         code = self.code_input.text().strip()
-        price = self.price_input.value()
         
         if not code:
             QMessageBox.warning(self, "Input Error", "Please enter a product code")
             return
         
-        result = self.cart_manager.scan_code(code, price)
+        # Use product's stored price (price_input is disabled/locked)
+        result = self.cart_manager.scan_code(code, 0.0)
         
         if result["success"]:
             product = result["product"]
             quantity = result["quantity"]
             
-            # Update product details
+            # Update product details with price and discount from database
             details = f"""
             <b>Product Added to Cart</b><br>
             Name: {product['name']}<br>
             Code: {product['code']}<br>
             Color: {product['color']}<br>
             Size: {product['size']}<br>
-            Unit Price: ${price:.2f}<br>
+            Unit Price: {int(product.get('price', 0)):,} IDR<br>
+            Base Discount: {int(product.get('discount', 0))}%<br>
             Quantity in Cart: {quantity}<br>
             Available Stock: {product['stock']}
             """
             self.details_text.setText(details)
             
-            # Clear inputs
+            # Clear code input and reset discount input to 0
             self.code_input.clear()
             self.code_input.setFocus()
+            self.discount_input.setValue(0.0)
             
             # Update displays
             self.update_cart_display()
@@ -157,6 +175,37 @@ class CashierWindow(QMainWindow):
         else:
             QMessageBox.warning(self, "Scan Error", result["error"])
             self.details_text.setText(f"<span style='color: red;'>{result['error']}</span>")
+
+    def apply_discount(self):
+        """Apply discount to the last scanned/selected product."""
+        # Get the currently selected item in cart, or apply to most recently added
+        sel = self.cart_table.selectedItems()
+        if not sel:
+            QMessageBox.information(self, "No Selection", "Please select a product in the cart to apply discount")
+            return
+        
+        row = sel[0].row()
+        if row < 0:
+            return
+        
+        # Extract product_id from cart - we need to map row to product_id
+        cart = self.cart_manager.get_cart()
+        product_ids = list(cart.keys())
+        if row >= len(product_ids):
+            return
+        
+        product_id = product_ids[row]
+        discount_pct = self.discount_input.value()
+        
+        # Apply discount to cart item (store as additional discount field)
+        if product_id in cart:
+            cart[product_id]['additional_discount'] = discount_pct
+            self.discount_input.setValue(0.0)
+            self.update_cart_display()
+            self.update_totals()
+            QMessageBox.information(self, "Discount Applied", f"Discount of {discount_pct}% applied")
+        else:
+            QMessageBox.warning(self, "Error", "Product not found in cart")
     
     def update_cart_display(self):
         """Update the cart table display."""
@@ -169,6 +218,7 @@ class CashierWindow(QMainWindow):
             product = item["product"]
             quantity = item["quantity"]
             price = item["price"]
+            additional_discount = item.get('additional_discount', 0)
             total = quantity * price
             
             # Product name
@@ -182,28 +232,33 @@ class CashierWindow(QMainWindow):
             qty_item.setTextAlignment(Qt.AlignCenter)
             self.cart_table.setItem(row, 2, qty_item)
             
-            # Unit price
-            price_item = QTableWidgetItem(f"${price:.2f}")
+            # Unit price (IDR format)
+            price_item = QTableWidgetItem(f"{int(price):,}")
             price_item.setTextAlignment(Qt.AlignRight)
             self.cart_table.setItem(row, 3, price_item)
-            
+
+            # Discount
+            discount_item = QTableWidgetItem(f"{additional_discount}%")
+            discount_item.setTextAlignment(Qt.AlignCenter)
+            self.cart_table.setItem(row, 4, discount_item)
+
             # Total
-            total_item = QTableWidgetItem(f"${total:.2f}")
+            total_item = QTableWidgetItem(f"{int(total):,}")
             total_item.setTextAlignment(Qt.AlignRight)
-            self.cart_table.setItem(row, 4, total_item)
+            self.cart_table.setItem(row, 5, total_item)
             
             # Remove button
             remove_btn = QPushButton("Remove")
             remove_btn.clicked.connect(lambda checked, pid=product_id: self.remove_item(pid))
-            self.cart_table.setCellWidget(row, 5, remove_btn)
+            self.cart_table.setCellWidget(row, 6, remove_btn)
     
     def update_totals(self):
         """Update the totals display."""
         totals = self.cart_manager.get_totals()
         
-        self.subtotal_label.setText(f"Subtotal: ${totals['subtotal']:.2f}")
-        self.tax_label.setText(f"Tax ({int(TAX_RATE*100)}%): ${totals['tax']:.2f}")
-        self.total_label.setText(f"Total: ${totals['total']:.2f}")
+        self.subtotal_label.setText(f"Subtotal: {int(totals['subtotal']):,} IDR")
+        self.tax_label.setText(f"Tax ({int(TAX_RATE*100)}%): {int(totals['tax']):,} IDR")
+        self.total_label.setText(f"Total: {int(totals['total']):,} IDR")
 
     def remove_item(self, product_id):
         """Remove item from cart."""

@@ -1,26 +1,37 @@
 # database/queries.py
 from database.db import get_connection
+import uuid
 
 # -------------------------
 # Product functions
 # -------------------------
-def add_product(name, color, size, stock, code=None):
+def add_product(name, color, size, stock, price=None, code=None):
     """Add a new product with initial stock."""
     conn = get_connection()
     c = conn.cursor()
     try:
+        # Insert product (code may be None). We'll generate a unique code after insert
         c.execute(
-            "INSERT INTO products (code, name, color, size, stock) VALUES (?, ?, ?, ?, ?)",
-            (code, name, color, size, stock)
+            "INSERT INTO products (code, name, color, size, price, stock) VALUES (?, ?, ?, ?, ?, ?)",
+            (code, name, color, size, price or 0, stock)
         )
         product_id = c.lastrowid
+
+        # If no code provided, generate a UUID-based code to guarantee uniqueness
+        if not code:
+            unique = uuid.uuid4().hex[:12]
+            generated_code = f"PNY|{name}|{color}|{size}|{unique}"
+            # update the product with the generated code
+            c.execute("UPDATE products SET code=? WHERE id=?", (generated_code, product_id))
+            code = generated_code
+
         # Log initial stock
         c.execute(
             "INSERT INTO stock_log (product_id, action, quantity) VALUES (?, ?, ?)",
             (product_id, "restock", stock)
         )
         conn.commit()
-        return {"success": True, "product_id": product_id}
+        return {"success": True, "product_id": product_id, "code": code}
     except Exception as e:
         return {"success": False, "error": str(e)}
     finally:
@@ -86,7 +97,7 @@ def get_stock():
     conn = get_connection()
     c = conn.cursor()
     try:
-        c.execute("SELECT id, code, name, color, size, stock FROM products")
+        c.execute("SELECT id, code, name, color, size, price, discount, stock FROM products")
         rows = c.fetchall()
         return rows
     finally:
@@ -107,5 +118,64 @@ def get_stock_log(product_id=None):
                 "SELECT product_id, action, quantity, timestamp FROM stock_log ORDER BY timestamp"
             )
         return c.fetchall()
+    finally:
+        conn.close()
+
+
+def update_product(product_id, name=None, color=None, size=None, stock=None, code=None, price=None, discount=None):
+    """Update product fields. Only non-None arguments will be updated."""
+    conn = get_connection()
+    c = conn.cursor()
+    try:
+        # Build dynamic update
+        fields = []
+        params = []
+        if code is not None:
+            fields.append("code = ?")
+            params.append(code)
+        if name is not None:
+            fields.append("name = ?")
+            params.append(name)
+        if color is not None:
+            fields.append("color = ?")
+            params.append(color)
+        if size is not None:
+            fields.append("size = ?")
+            params.append(size)
+        if price is not None:
+            fields.append("price = ?")
+            params.append(price)
+        if discount is not None:
+            fields.append("discount = ?")
+            params.append(discount)
+        if stock is not None:
+            fields.append("stock = ?")
+            params.append(stock)
+
+        if not fields:
+            return {"success": False, "error": "No fields to update"}
+
+        params.append(product_id)
+        sql = f"UPDATE products SET {', '.join(fields)} WHERE id = ?"
+        c.execute(sql, tuple(params))
+        conn.commit()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    finally:
+        conn.close()
+
+
+def delete_product(product_id):
+    """Delete a product and its stock log entries."""
+    conn = get_connection()
+    c = conn.cursor()
+    try:
+        c.execute("DELETE FROM stock_log WHERE product_id = ?", (product_id,))
+        c.execute("DELETE FROM products WHERE id = ?", (product_id,))
+        conn.commit()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
     finally:
         conn.close()

@@ -26,6 +26,8 @@ def create_tables():
         name TEXT NOT NULL,
         color TEXT,
         size TEXT,
+        price INTEGER DEFAULT 0,
+        discount INTEGER DEFAULT 0,
         stock INTEGER DEFAULT 0
     )
     """)
@@ -43,6 +45,18 @@ def create_tables():
     """)
 
     conn.commit()
+    # Ensure price and discount columns exist for older DBs
+    try:
+        c.execute("PRAGMA table_info(products)")
+        cols = [r[1] for r in c.fetchall()]
+        if 'price' not in cols:
+            c.execute("ALTER TABLE products ADD COLUMN price INTEGER DEFAULT 0")
+            conn.commit()
+        if 'discount' not in cols:
+            c.execute("ALTER TABLE products ADD COLUMN discount INTEGER DEFAULT 0")
+            conn.commit()
+    except Exception:
+        pass
     conn.close()
 
 # Automatically create tables if DB is empty
