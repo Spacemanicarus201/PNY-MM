@@ -17,10 +17,10 @@ def add_product(name, color, size, stock, price=None, code=None):
         )
         product_id = c.lastrowid
 
-        # If no code provided, generate a UUID-based code to guarantee uniqueness
+        # If no code provided, generate a short UUID-based unique code
         if not code:
-            unique = uuid.uuid4().hex[:12]
-            generated_code = f"PNY|{name}|{color}|{size}|{unique}"
+            unique = uuid.uuid4().hex[:10]
+            generated_code = f"PNY{unique}"
             # update the product with the generated code
             c.execute("UPDATE products SET code=? WHERE id=?", (generated_code, product_id))
             code = generated_code
