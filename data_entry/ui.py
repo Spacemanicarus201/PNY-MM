@@ -69,8 +69,8 @@ class DataEntryWindow(QMainWindow):
 
         # Table showing all products
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(["ID", "Code", "Name", "Color", "Size", "Stock"])
+        self.table.setColumnCount(8)
+        self.table.setHorizontalHeaderLabels(["ID", "Code", "Name", "Color", "Size", "Price (IDR)", "Discount (%)", "Stock"])
         self.layout.addWidget(self.table)
         # Search bar
         search_layout = QHBoxLayout()
@@ -160,8 +160,8 @@ class DataEntryWindow(QMainWindow):
         dialog = AddProductDialog(self)
         if dialog.exec() != QDialog.Accepted:
             return
-        name, color, size, stock, code_input = dialog.values()
-        result = add_product(name, color, size, stock, code_input)
+        name, color, size, stock, price_value, code_input = dialog.values()
+        result = add_product(name, color, size, stock, price_value, code_input)
         if result["success"]:
             QMessageBox.information(self, "Success", "Product added successfully!")
             self.load_products()
